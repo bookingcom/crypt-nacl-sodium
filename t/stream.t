@@ -8,9 +8,14 @@ use Crypt::NaCl::Sodium qw(bin2hex);
 
 my $crypto_stream = Crypt::NaCl::Sodium->stream();
 
+my $aes128_ok = eval {
+    $crypto_stream->AES128CTR_NONCEBYTES;
+    1;
+};
+
 ok($crypto_stream->$_ > 0, "$_ > 0")
     for qw( NONCEBYTES KEYBYTES CHACHA20_NONCEBYTES CHACHA20_KEYBYTES
-    SALSA20_NONCEBYTES SALSA20_KEYBYTES AES128CTR_NONCEBYTES AES128CTR_KEYBYTES  );
+    SALSA20_NONCEBYTES SALSA20_KEYBYTES), $aes128_ok ?  qw( AES128CTR_NONCEBYTES AES128CTR_KEYBYTES  ) : ();
 
 my %tests = (
     'XSalsa20' => {
@@ -33,6 +38,8 @@ my %tests = (
         const_prefix => 'AES128CTR_',
     },
 );
+
+delete $tests{'AES-128-CTR'} unless $aes128_ok;
 
 my $msg = chr(0x42) x 160;
 

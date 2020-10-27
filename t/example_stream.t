@@ -93,9 +93,11 @@ my $msg = "Secret message";
     is($decrypted_msg->to_hex, bin2hex($msg), "msg decrypted");
 }
 
-{
+SKIP: {
     ## AES-128-CTR
     ########
+    skip("libsodium version does not support aes128ctr")
+        unless eval { $crypto_stream->AES128CTR_KEYBYTES; 1 };
 
     my ($key, $nonce, $random_bytes, $secret, $decrypted_msg);
 

@@ -1988,7 +1988,7 @@ encrypt(self, msg, adata, nonce, key)
         unsigned int nonce_size;
         unsigned int adlen_size;
         unsigned int key_size;
-        int (*encrypt_function)(unsigned char *, unsigned long long *, const unsigned char *, unsigned long long, 
+        int (*encrypt_function)(unsigned char *, unsigned long long *, const unsigned char *, unsigned long long,
             const unsigned char *, unsigned long long, const unsigned char *, const unsigned char *, const unsigned char *);
         DataBytesLocker *bl;
     PPCODE:
@@ -2074,7 +2074,7 @@ decrypt(self, msg, adata, nonce, key)
         unsigned int nonce_size;
         unsigned int adlen_size;
         unsigned int key_size;
-        int (*decrypt_function)(unsigned char *, unsigned long long *, unsigned char *, const unsigned char *, unsigned long long, 
+        int (*decrypt_function)(unsigned char *, unsigned long long *, unsigned char *, const unsigned char *, unsigned long long,
             const unsigned char *, unsigned long long, const unsigned char *, const unsigned char *);
         DataBytesLocker *bl;
     PPCODE:
@@ -4535,14 +4535,22 @@ SALSA20_KEYBYTES(...)
 unsigned int
 AES128CTR_NONCEBYTES(...)
     CODE:
+#ifdef crypto_stream_aes128ctr_NONCEBYTES
         RETVAL = crypto_stream_aes128ctr_NONCEBYTES;
+#else
+        croak("aes128ctr is not supported by your version of libsodium");
+#endif
     OUTPUT:
         RETVAL
 
 unsigned int
 AES128CTR_KEYBYTES(...)
     CODE:
+#ifdef crypto_stream_aes128ctr_KEYBYTES
         RETVAL = crypto_stream_aes128ctr_KEYBYTES;
+#else
+        croak("aes128ctr is not supported by your version of libsodium");
+#endif
     OUTPUT:
         RETVAL
 
@@ -4570,7 +4578,11 @@ keygen(self)
                 key_size = crypto_stream_salsa20_KEYBYTES;
                 break;
             case 3:
+#ifdef crypto_stream_aes128ctr_KEYBYTES
                 key_size = crypto_stream_aes128ctr_KEYBYTES;
+#else
+                croak("aes128ctr is not supported by your version of libsodium");
+#endif
                 break;
             default:
                 key_size = crypto_stream_KEYBYTES;
@@ -4605,7 +4617,11 @@ nonce(self, ...)
                 nonce_size = crypto_stream_salsa20_NONCEBYTES;
                 break;
             case 3:
+#ifdef crypto_stream_aes128ctr_KEYBYTES
                 nonce_size = crypto_stream_aes128ctr_NONCEBYTES;
+#else
+                croak("aes128ctr is not supported by your version of libsodium");
+#endif
                 break;
             case 4:
                 nonce_size = crypto_stream_chacha20_IETF_NONCEBYTES;
@@ -4687,9 +4703,13 @@ bytes(self, length, nonce, key)
                 bytes_function = &crypto_stream_salsa20;
                 break;
             case 3:
+#ifdef crypto_stream_aes128ctr_KEYBYTES
                 nonce_size = crypto_stream_aes128ctr_NONCEBYTES;
                 key_size = crypto_stream_aes128ctr_KEYBYTES;
                 bytes_function = &crypto_stream_aes128ctr;
+#else
+                croak("aes128ctr is not supported by your version of libsodium");
+#endif
                 break;
             case 4:
                 nonce_size = crypto_stream_salsa20_NONCEBYTES;
@@ -4777,9 +4797,13 @@ xor(self, msg, nonce, key)
                 xor_function = &crypto_stream_salsa20_xor;
                 break;
             case 3:
+#ifdef crypto_stream_aes128ctr_KEYBYTES
                 nonce_size = crypto_stream_aes128ctr_NONCEBYTES;
                 key_size = crypto_stream_aes128ctr_KEYBYTES;
                 xor_function = &crypto_stream_aes128ctr_xor;
+#else
+                croak("aes128ctr is not supported by your version of libsodium");
+#endif
                 break;
             case 4:
                 nonce_size = crypto_stream_salsa20_NONCEBYTES;
