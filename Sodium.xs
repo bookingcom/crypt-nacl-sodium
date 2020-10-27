@@ -908,14 +908,16 @@ SV *
 hex2bin(hex_sv, ...)
     SV * hex_sv
     PREINIT:
-        char * hex;
+        const char * hex;
+        const char * sodium_stopping_parsing;
         unsigned char * bin;
         size_t hex_len;
         size_t bin_len;
         size_t bin_max_len = 0;
         char * ignore = NULL;
+        int convert_status = 0;
     CODE:
-        hex = SvPV(hex_sv, hex_len);
+        hex = SvPV_const(hex_sv, hex_len);
 
         if ( items > 1 && (items + 1) % 2 != 0 ) {
             croak("Invalid number of arguments");
@@ -938,18 +940,36 @@ hex2bin(hex_sv, ...)
                 }
             }
         }
-        if ( bin_max_len == 0 ) {
-            if ( ignore == NULL ) {
-                bin_max_len = hex_len / 2;
-            } else {
-                bin_max_len = hex_len;
-            }
+        if ( ignore == NULL ) {
+            bin = sodium_malloc( hex_len / 2 + 1 );
+        } else {
+            bin = sodium_malloc( hex_len + 1 );
         }
-        bin = sodium_malloc( bin_max_len + 1 );
         if ( bin == NULL ) {
             croak("Could not allocate memory");
         }
-        sodium_hex2bin(bin, bin_max_len, hex, hex_len, ignore, &bin_len, NULL);
+
+        /* Backcompat shim!
+         * Originally sodium_hex2bin("414243", max_len => 2) would have
+         * left "AB" in bin, and returned -1.
+         * That was later changed; the function still returns -1, and
+         * sodium's guarded memory is all that remains in bin.
+         *
+         * So we preserve the original behavior here by first having
+         * sodium_hex2bin just convert the entire string, then later
+         * chop off any extra bytes we do not need.
+         * Note that we also now MUST pass a pointer for the final
+         * argument, otherwise it trips a new check when ignore is
+         * provided.
+         * */
+        convert_status = sodium_hex2bin(bin, hex_len, hex, hex_len, ignore, &bin_len, &sodium_stopping_parsing);
+        if ( convert_status ) {
+            croak("sodium_hex2bin() failed with status '%d', could not convert <%s> with ignore <%s>", convert_status, hex, ignore ? ignore : "");
+        }
+
+        if ( bin_max_len && bin_len > bin_max_len ) {
+            bin_len = bin_max_len;
+        }
         RETVAL = newSVpvn((const char * const)bin, bin_len);
     OUTPUT:
         RETVAL
